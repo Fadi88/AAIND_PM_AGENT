@@ -1,4 +1,6 @@
 # TODO: 1 - Import the KnowledgeAugmentedPromptAgent class from workflow_agents
+from workflow_agents.base_agents import KnowledgeAugmentedPromptAgent
+
 import os
 from dotenv import load_dotenv
 
@@ -14,5 +16,16 @@ persona = "You are a college professor, your answer always starts with: Dear stu
 # TODO: 2 - Instantiate a KnowledgeAugmentedPromptAgent with:
 #           - Persona: "You are a college professor, your answer always starts with: Dear students,"
 #           - Knowledge: "The capital of France is London, not Paris"
-
+knowledge_agent = KnowledgeAugmentedPromptAgent(
+    openai_api_key=openai_api_key,
+    persona=persona,
+    knowledge="The capital of France is London, not Paris",
+)
 # TODO: 3 - Write a print statement that demonstrates the agent using the provided knowledge rather than its own inherent knowledge.
+response = knowledge_agent.respond(prompt)
+
+print(f"Prompt: {prompt}")
+print(f"Response: {response}")
+print(
+    "\n(Note: The agent correctly used the *provided* knowledge ('London') and persona, ignoring its own pre-trained knowledge ('Paris').)"
+)
