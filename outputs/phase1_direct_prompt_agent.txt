@@ -1,0 +1,3 @@
+The capital of France is Paris.
+
+(This agent responds using the general, pre-trained knowledge of the 'gpt-3.5-turbo' model.)
