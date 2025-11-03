@@ -15,8 +15,9 @@ class DirectPromptAgent:
     def __init__(self, openai_api_key):
         # Initialize the agent
         # TODO: 2 - Define an attribute named openai_api_key to store the OpenAI API key provided to this class.
-        # self.openai_api_key = openai_api_key
-        self.openai_api_key = os.getenv("OPENAI_API_KEY")
+        self.openai_api_key = (
+            openai_api_key if openai_api_key else os.getenv("OPENAI_API_KEY")
+        )
 
     def respond(self, prompt):
         # Generate a response using the OpenAI API
@@ -40,9 +41,10 @@ class AugmentedPromptAgent:
     def __init__(self, openai_api_key, persona):
         """Initialize the agent with given attributes."""
         # TODO: 1 - Create an attribute for the agent's persona
-        # self.openai_api_key = openai_api_key
         self.persona = persona
-        self.openai_api_key = os.getenv("OPENAI_API_KEY")
+        self.openai_api_key = (
+            openai_api_key if openai_api_key else os.getenv("OPENAI_API_KEY")
+        )
 
     def respond(self, input_text):
         """Generate a response using OpenAI API."""
@@ -75,8 +77,9 @@ class KnowledgeAugmentedPromptAgent:
         self.persona = persona
         # TODO: 1 - Create an attribute to store the agent's knowledge.
         self.knowledge = knowledge
-        # self.openai_api_key = openai_api_key
-        self.openai_api_key = os.getenv("OPENAI_API_KEY")
+        self.openai_api_key = (
+            openai_api_key if openai_api_key else os.getenv("OPENAI_API_KEY")
+        )
 
     def respond(self, input_text):
         """Generate a response using the OpenAI API."""
@@ -129,7 +132,9 @@ class RAGKnowledgePromptAgent:
         self.persona = persona
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
-        self.openai_api_key = openai_api_key
+        self.openai_api_key = (
+            openai_api_key if openai_api_key else os.getenv("OPENAI_API_KEY")
+        )
         self.unique_filename = (
             f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}.csv"
         )
@@ -290,7 +295,9 @@ class EvaluationAgent:
     ):
         # Initialize the EvaluationAgent with given attributes.
         # TODO: 1 - Declare class attributes here
-        self.openai_api_key = os.getenv("OPENAI_API_KEY")
+        self.openai_api_key = (
+            openai_api_key if openai_api_key else os.getenv("OPENAI_API_KEY")
+        )
         self.persona = persona
         self.evaluation_criteria = evaluation_criteria
         self.worker_agent = worker_agent
@@ -331,6 +338,7 @@ class EvaluationAgent:
                     },
                     {"role": "user", "content": eval_prompt},
                 ],
+                temperature=0,
             )
             evaluation = response.choices[0].message.content.strip()
             print(f"Evaluator Agent Evaluation:\n{evaluation}")
@@ -352,6 +360,7 @@ class EvaluationAgent:
                         },
                         {"role": "user", "content": instruction_prompt},
                     ],
+                    temperature=0,
                 )
                 instructions = response.choices[0].message.content.strip()
                 print(f"Instructions to fix:\n{instructions}")
@@ -376,7 +385,9 @@ class RoutingAgent:
     def __init__(self, openai_api_key, agents):
         # Initialize the agent with given attributes
         # self.openai_api_key = openai_api_key
-        self.openai_api_key = os.getenv("OPENAI_API_KEY")
+        self.openai_api_key = (
+            openai_api_key if openai_api_key else os.getenv("OPENAI_API_KEY")
+        )
         # TODO: 1 - Define an attribute to hold the agents, call it agents
         self.agents = agents
 
@@ -427,7 +438,9 @@ class ActionPlanningAgent:
 
     def __init__(self, openai_api_key, knowledge):
         # TODO: 1 - Initialize the agent attributes here
-        self.openai_api_key = os.getenv("OPENAI_API_KEY")
+        self.openai_api_key = (
+            openai_api_key if openai_api_key else os.getenv("OPENAI_API_KEY")
+        )
         self.knowledge = knowledge
 
     def extract_steps_from_prompt(self, prompt):
@@ -458,6 +471,11 @@ class ActionPlanningAgent:
         response_text = response.choices[0].message.content
 
         # TODO: 5 - Clean and format the extracted steps by removing empty lines and unwanted text
-        steps = response_text.split("\n")
+        steps = [self.clean_line(l) for l in response_text.split("\n") if len(l) > 0]
 
         return steps
+
+    def clean_line(self, l):
+        if i := l.find(".") > 0:
+            return l[i + 1 :].strip()
+        return l.strip()
