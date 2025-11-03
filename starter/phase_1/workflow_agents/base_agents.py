@@ -390,7 +390,7 @@ class RoutingAgent:
             model="text-embedding-3-large", input=text, encoding_format="float"
         )
 
-        embedding = response.data[0].embedding.strip()
+        embedding = response.data[0].embedding
         return embedding
 
     # TODO: 3 - Define a method to route user prompts to the appropriate agent
