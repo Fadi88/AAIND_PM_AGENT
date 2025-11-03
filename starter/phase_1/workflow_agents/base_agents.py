@@ -129,8 +129,7 @@ class RAGKnowledgePromptAgent:
         self.persona = persona
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
-        # self.openai_api_key = openai_api_key
-        self.openai_api_key = os.getenv("OPENAI_API_KEY")
+        self.openai_api_key = openai_api_key
         self.unique_filename = (
             f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}.csv"
         )
@@ -186,9 +185,19 @@ class RAGKnowledgePromptAgent:
         chunks, start, chunk_id = [], 0, 0
 
         while start < len(text):
-            end = min(start + self.chunk_size, len(text))
-            if separator in text[start:end]:
-                end = start + text[start:end].rindex(separator) + len(separator)
+            max_end = min(start + self.chunk_size, len(text))
+            end = max_end
+
+            current_segment = text[start:max_end]
+            if separator in current_segment:
+                last_separator_index = current_segment.rfind(separator)
+                end = start + last_separator_index + len(separator)
+
+                if end == start:
+                    end = max_end
+
+            if start >= len(text):
+                break
 
             chunks.append(
                 {
@@ -200,7 +209,11 @@ class RAGKnowledgePromptAgent:
                 }
             )
 
-            start = end - self.chunk_overlap
+            start = max(0, end - self.chunk_overlap)
+
+            if end == len(text):
+                break
+
             chunk_id += 1
 
         with open(
