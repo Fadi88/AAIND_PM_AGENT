@@ -79,9 +79,11 @@ product_manager_evaluation_agent = EvaluationAgent(
 persona_program_manager = "You are a Program Manager, you are responsible for defining the features for a product."
 knowledge_program_manager = (
     "Features of a product are defined by organizing similar user stories into cohesive groups.\n"
+    "Each feature must include: Feature Name, Description, Key Functionality, and User Benefit.\n"
+    "Use the actual user stories from Step 1 and the product spec below to generate concrete features for the Email Router product.\n"
+    "Focus on components such as: email ingestion, LLM-based classification, RAG system, routing logic, and monitoring dashboard.\n"
     f"\n--- PRODUCT SPEC ---\n{product_spec}"
 )
-
 # Instantiate a program_manager_knowledge_agent using 'persona_program_manager' and 'knowledge_program_manager'
 program_manager_knowledge_agent = KnowledgeAugmentedPromptAgent(
     openai_api_key=openai_api_key,
@@ -96,6 +98,8 @@ persona_program_manager_eval = (
 
 # TODO: 8 - Instantiate a program_manager_evaluation_agent using 'persona_program_manager_eval' and the evaluation criteria below.
 evaluation_criteria_prog_m = (
+    "The answer should include Email Router-specific product features. "
+    "Each must have: Feature Name, Description, Key Functionality, and User Benefit. "
     "The answer should be product features that follow the following structure: "
     "Feature Name: A clear, concise title that identifies the capability\n"
     "Description: A brief explanation of what the feature does and its purpose\n"
@@ -116,6 +120,8 @@ persona_dev_engineer = "You are a Development Engineer, you are responsible for 
 knowledge_dev_engineer = (
     "You are defining technical tasks based on user stories or features. "
     "The response MUST be a list of tasks. Each task MUST contain ALL of the following fields, in this exact order: "
+    "Focus strictly on implementing Email Router capabilities such as email ingestion, classification, routing, and monitoring. "
+    "Do NOT create generic login or authentication tasks.\n"
     "Task ID: A unique identifier for tracking purposes (e.g., TSK-001)\n"
     "Task Title: Brief description of the specific development work\n"
     "Related User Story: Reference to the parent user story\n"
@@ -141,6 +147,8 @@ persona_dev_engineer_eval = (
 # --- MODIFICATION: Tightened evaluation criteria ---
 evaluation_criteria_dev = (
     "The response MUST be a list of tasks. Each task MUST contain ALL of the following fields, in this exact order: "
+    "Each task must be Email Router-specific (e.g., email ingestion, LLM classification, routing, monitoring). "
+    "Do NOT include login, authentication, or generic web app tasks. "
     "Task ID: A unique identifier for tracking purposes (e.g., TSK-001)\n"
     "Task Title: Brief description of the specific development work\n"
     "Related User Story: Reference to the parent user story\n"
@@ -206,7 +214,6 @@ routing_agent.agents = routes
 print("\n*** Workflow execution started ***\n")
 # Workflow Prompt
 # ****
-# --- MODIFICATION: Updated workflow prompt ---
 workflow_prompt = "Generate a comprehensive project plan for this product, including user stories, product features, and development tasks."
 # ****
 print(f"Task to complete in this workflow, workflow prompt = {workflow_prompt}")
@@ -232,7 +239,6 @@ for step in workflow_steps:
         f"--- CURRENT TASK ---\n"
         f"Based on the context above, please complete the following task: {step}"
     )
-
     result = routing_agent.route(prompt_with_context)
 
     completed_steps_output.append(result)
