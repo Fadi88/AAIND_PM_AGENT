@@ -9,10 +9,6 @@ from workflow_agents.base_agents import (
 )
 
 import os
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
 
 # TODO: 2 - Load the OpenAI key into a variable called openai_api_key
 openai_api_key = os.getenv("OPENAI_API_KEY")
@@ -81,7 +77,11 @@ product_manager_evaluation_agent = EvaluationAgent(
 
 # Program Manager - Knowledge Augmented Prompt Agent
 persona_program_manager = "You are a Program Manager, you are responsible for defining the features for a product."
-knowledge_program_manager = "Features of a product are defined by organizing similar user stories into cohesive groups."
+knowledge_program_manager = (
+    "Features of a product are defined by organizing similar user stories into cohesive groups.\n"
+    f"\n--- PRODUCT SPEC ---\n{product_spec}"
+)
+
 # Instantiate a program_manager_knowledge_agent using 'persona_program_manager' and 'knowledge_program_manager'
 program_manager_knowledge_agent = KnowledgeAugmentedPromptAgent(
     openai_api_key=openai_api_key,
@@ -108,12 +108,23 @@ program_manager_evaluation_agent = EvaluationAgent(
     persona=persona_program_manager_eval,
     evaluation_criteria=evaluation_criteria_prog_m,
     worker_agent=program_manager_knowledge_agent,
-    max_interactions=1,
+    max_interactions=10,
 )
 
 # Development Engineer - Knowledge Augmented Prompt Agent
 persona_dev_engineer = "You are a Development Engineer, you are responsible for defining the development tasks for a product."
-knowledge_dev_engineer = "Development tasks are defined by identifying what needs to be built to implement each user story."
+knowledge_dev_engineer = (
+    "You are defining technical tasks based on user stories or features. "
+    "The response MUST be a list of tasks. Each task MUST contain ALL of the following fields, in this exact order: "
+    "Task ID: A unique identifier for tracking purposes (e.g., TSK-001)\n"
+    "Task Title: Brief description of the specific development work\n"
+    "Related User Story: Reference to the parent user story\n"
+    "Description: Detailed explanation of the technical work required\n"
+    "Acceptance Criteria: Specific requirements that must be met for completion\n"
+    "Estimated Effort: Time or complexity estimation\n"
+    "Dependencies: Any tasks that must be completed first"
+    f"\n--- PRODUCT SPEC ---\n{product_spec}"
+)
 # Instantiate a development_engineer_knowledge_agent using 'persona_dev_engineer' and 'knowledge_dev_engineer'
 development_engineer_knowledge_agent = KnowledgeAugmentedPromptAgent(
     openai_api_key=openai_api_key,
@@ -155,37 +166,34 @@ routing_agent = RoutingAgent(openai_api_key=openai_api_key, agents=[])
 # Job function persona support functions
 # TODO: 11 - Define the support functions for the routes of the routing agent
 def product_manager_support_function(query):
-    res = product_manager_knowledge_agent.respond(query)
-    eval_result = product_manager_evaluation_agent.evaluate(initial_prompt=res)
+    eval_result = product_manager_evaluation_agent.evaluate(initial_prompt=query)
     return eval_result["final_response"]
 
 
 def program_manager_support_function(query):
-    res = program_manager_knowledge_agent.respond(query)
-    eval_result = program_manager_evaluation_agent.evaluate(initial_prompt=res)
+    eval_result = program_manager_evaluation_agent.evaluate(initial_prompt=query)
     return eval_result["final_response"]
 
 
 def development_engineer_support_function(query):
-    res = development_engineer_knowledge_agent.respond(query)
-    eval_result = development_engineer_evaluation_agent.evaluate(initial_prompt=res)
+    eval_result = development_engineer_evaluation_agent.evaluate(initial_prompt=query)
     return eval_result["final_response"]
 
 
 routes = [
     {
         "name": "Product Manager",
-        "description": "Use this agent to define user stories, identify user personas, or list desired outcomes for a product.",
+        "description": "Use this agent ONLY for creating **new user stories** from a product spec. Do not use for features or tasks.",
         "func": product_manager_support_function,
     },
     {
         "name": "Program Manager",
-        "description": "Use this agent to define product features or group existing user stories into logical features.",
+        "description": "Use this agent ONLY for **grouping existing user stories** into **high-level product features** with a name, description, and benefit.",
         "func": program_manager_support_function,
     },
     {
         "name": "Development Engineer",
-        "description": "Use this agent to define technical development tasks, engineering work, or implementation steps needed to build a product.",
+        "description": "Use this agent ONLY for **breaking down** features or stories into **detailed, technical engineering tasks** that MUST include a Task ID, Related User Story, Acceptance Criteria, and Effort.",
         "func": development_engineer_support_function,
     },
 ]
@@ -210,15 +218,26 @@ print(f"Workflow steps defined: {workflow_steps}")
 
 completed_steps_output = []
 
+cumulative_context = ""
+
 for step in workflow_steps:
     if not step:
         continue
 
     print(f"\n--- EXECUTING STEP: {step} ---")
 
-    result = routing_agent.route(step)
+    prompt_with_context = (
+        f"--- CONTEXT SO FAR ---\n"
+        f"{cumulative_context}\n\n"
+        f"--- CURRENT TASK ---\n"
+        f"Based on the context above, please complete the following task: {step}"
+    )
+
+    result = routing_agent.route(prompt_with_context)
 
     completed_steps_output.append(result)
+
+    cumulative_context += f"\n\n--- Output for Step: '{step}' ---\n{result}"
 
     print(f"--- STEP COMPLETED. Result: ---")
     print(result)
